@@ -1,0 +1,603 @@
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { CheckCircle2, Circle, Search, Info, Moon, Telescope, Filter, Calendar, ZoomIn, ZoomOut, Maximize, ChevronDown, ChevronUp, BookOpen, MapPin } from 'lucide-react';
+
+// 업로드된 Lunar 100 원본 데이터
+const RAW_LUNAR_100 = [
+  [1, "달 (Moon)", "거대한 위성 (Large satellite)", "", ""],
+  [2, "지구조 (Earthshine)", "두 번 반사된 태양빛 (Twice reflected sunlight)", "", ""],
+  [3, "바다/고지대 경계 (Mare/highland dichotomy)", "뚜렷하게 구분되는 두 물질 (Two materials with distinct compositions)", "", ""],
+  [4, "아펜니누스 산맥 (Apennines)", "비의 바다 가장자리 (Imbrium basin rim)", "18.9N", "3.7W"],
+  [5, "코페르니쿠스 (Copernicus)", "전형적인 대형 복합 크레이터 (Archetypal large complex crater)", "9.7N", "20.1W"],
+  [6, "티코 (Tycho)", "충돌 용융물이 있는 거대한 광조 크레이터 (Large rayed crater with impact melts)", "43.4S", "11.1W"],
+  [7, "알타이 절벽 (Altai Scarp)", "감로주의 바다 가장자리 (Nectaris basin rim)", "24.3S", "22.6E"],
+  [8, "테오필루스, 키릴루스, 카타리나 (Theophilus, Cyrillus, Catharina)", "크레이터의 퇴화 단계를 보여주는 연속된 크레이터", "13.2S", "24.0E"],
+  [9, "클라비우스 (Clavius)", "크기에도 불구하고 분지 특징이 없는 크레이터", "58.8S", "14.1W"],
+  [10, "위난의 바다 (Mare Crisium)", "거대한 원형 분지 안에 있는 바다", "18.0N", "59.0E"],
+  [11, "아리스타르쿠스 (Aristarchus)", "벽에 어두운 띠가 있는 매우 밝은 크레이터", "23.7N", "47.4W"],
+  [12, "프로클루스 (Proclus)", "사선 방향 충돌에 의한 광조 (Oblique-impact rays)", "16.1N", "46.8E"],
+  [13, "가상디 (Gassendi)", "바닥이 갈라진 크레이터 (Floor-fractured crater)", "17.6S", "40.1W"],
+  [14, "무지개 만 (Sinus Iridum)", "테두리가 사라진 매우 큰 크레이터", "45.0N", "32.0W"],
+  [15, "직선 절벽 (Straight Wall)", "달의 단층 중 가장 좋은 예 (Best example of a lunar fault)", "21.8S", "7.8W"],
+  [16, "페타비우스 (Petavius)", "바닥이 갈라지고 융기한 크레이터", "25.1S", "60.4E"],
+  [17, "슈뢰터 계곡 (Schröter's Valley)", "거대한 구불구불한 계곡 (Giant sinuous rille)", "26.2N", "50.8W"],
+  [18, "맑음의 바다 어두운 가장자리 (Mare Serenitatis dark edges)", "서로 다른 성분으로 구분되는 바다", "17.8N", "23.0E"],
+  [19, "알프스 계곡 (Alpine Valley)", "달의 지구(graben) 계곡", "49.0N", "3.0E"],
+  [20, "포시도니우스 (Posidonius)", "바닥이 갈라진 크레이터", "31.8N", "29.9E"],
+  [21, "프라카스토리우스 (Fracastorius)", "바닥이 가라앉고 갈라진 크레이터", "21.5S", "33.2E"],
+  [22, "아리스타르쿠스 고원 (Aristarchus Plateau)", "화산재로 덮인 신비한 융기 지역", "26.0N", "51.0W"],
+  [23, "피코 산 (Pico)", "고립된 비의 바다 고리 조각", "45.7N", "8.9W"],
+  [24, "히기누스 계곡 (Hyginus Rille)", "가장자리가 없는 붕괴 구덩이를 포함하는 계곡", "7.4N", "7.8E"],
+  [25, "메시에 & 메시에 A (Messier & Messier A)", "사선 방향의 튕겨나간 충돌구 쌍", "1.9S", "47.6E"],
+  [26, "추위의 바다 (Mare Frigoris)", "기원이 불분명한 활 모양의 바다", "56.0N", "1.4E"],
+  [27, "아르키메데스 (Archimedes)", "중앙 봉우리가 없는 큰 크레이터", "29.7N", "4.0W"],
+  [28, "히파르쿠스 (Hipparchus)", "최초로 그려진 단일 크레이터", "5.5S", "4.8E"],
+  [29, "아리아데우스 계곡 (Aridaeus Rille)", "길고 직선적인 단층 계곡", "6.4N", "14.0E"],
+  [30, "쉴러 (Schiller)", "사선 방향 충돌일 가능성이 있는 크레이터", "51.9S", "39.0W"],
+  [31, "타룬티우스 (Taruntius)", "비교적 젊은, 바닥이 갈라진 크레이터", "5.6N", "46.5E"],
+  [32, "아라고 알파 & 베타 (Arago Alpha & Beta)", "화산 돔 (Volcanic domes)", "6.2N", "21.4E"],
+  [33, "뱀 모양의 능선 (Serpentine Ridge)", "분지 안쪽 고리 조각 (Basin inner-ring segment)", "27.3N", "25.3E"],
+  [34, "죽음의 호수 (Lacus Mortis)", "계곡과 능선이 있는 이상한 형태의 크레이터", "45.0N", "27.2E"],
+  [35, "트리스네커 계곡군 (Triesnecker Rilles)", "복잡한 계곡 무리 (Rille family)", "4.3N", "4.6E"],
+  [36, "그리말디 분지 (Grimaldi basin)", "작은 이중 고리형 분지", "5.5S", "68.3W"],
+  [37, "바이이 (Bailly)", "간신히 식별 가능한 거대 분지", "66.5S", "69.1W"],
+  [38, "사빈 & 리터 (Sabine & Ritter)", "쌍둥이 충돌구일 가능성이 있음", "1.7N", "19.7E"],
+  [39, "시카르트 (Schickard)", "동해 분지의 분출물 줄무늬가 있는 크레이터", "44.3S", "55.3W"],
+  [40, "얀센 계곡 (Janssen Rille)", "고지대 계곡의 드문 예", "45.4S", "39.3E"],
+  [41, "베셀 광조 (Bessel ray)", "베셀 근처의 기원이 불분명한 광조", "21.8N", "17.9E"],
+  [42, "마리우스 언덕 (Marius Hills)", "화산 돔과 언덕의 복합체", "12.5N", "54.0W"],
+  [43, "바르겐틴 (Wargentin)", "용암이나 분출물로 가장자리까지 가득 찬 크레이터", "49.6S", "60.2W"],
+  [44, "메르세니우스 (Mersenius)", "이차 크레이터들에 의해 파인 융기된 바닥", "21.5S", "49.2W"],
+  [45, "마우롤리쿠스 (Maurolycus)", "크레이터 포화 지역 (Region of saturation cratering)", "42.0S", "14.0E"],
+  [46, "레기오몬타누스 중앙 봉 (Regiomontanus central peak)", "화산 봉우리일 가능성이 있음", "28.0S", "0.6W"],
+  [47, "알폰수스 어두운 점들 (Alphonsus dark spots)", "크레이터 바닥의 어두운 후광 분출물", "13.7S", "3.2W"],
+  [48, "코시 지역 (Cauchy region)", "단층, 계곡, 돔 지형", "10.5N", "38.0E"],
+  [49, "그루이투이젠 델타 & 감마", "점성 높은 용암으로 형성된 화산 돔", "36.3N", "40.0W"],
+  [50, "케일리 평원 (Cayley Plains)", "기원이 불분명한 밝고 부드러운 평원", "4.0N", "15.1E"],
+  [51, "데이비 크레이터 사슬 (Davy crater chain)", "혜성 파편들의 충돌 결과", "11.1S", "6.6W"],
+  [52, "크루거 (Crüger)", "화산 칼데라일 가능성이 있음", "16.7S", "66.8W"],
+  [53, "라몽 (Lamont)", "파묻힌 분지일 가능성이 있음", "4.4N", "23.7E"],
+  [54, "히팔루스 계곡 (Hippalus Rilles)", "습기의 바다와 동심원을 이루는 계곡들", "24.5S", "29.0W"],
+  [55, "바코 (Baco)", "이례적으로 매끄러운 크레이터 바닥과 주변 평원", "51.0S", "19.1E"],
+  [56, "오스트랄레 분지 (Australe basin)", "부분적으로 물에 잠긴 고대 분지", "49.8S", "84.5E"],
+  [57, "라이너 감마 (Reiner Gamma)", "눈에 띄는 소용돌이 형태와 자기장 이상", "7.7N", "59.2W"],
+  [58, "레이타 계곡 (Rheita Valley)", "분지의 이차 크레이터 사슬", "42.5S", "51.5E"],
+  [59, "쉴러-주키우스 분지 (Schiller-Zucchius basin)", "심하게 훼손되어 간과되었던 분지", "56.0S", "45.0W"],
+  [60, "키스 파이 (Kies Pi)", "화산 돔 (Volcanic dome)", "26.9S", "24.2W"],
+  [61, "뫼스팅 A (Mösting A)", "달의 전면 중심에 가까운 단순 크레이터", "3.2S", "5.2W"],
+  [62, "륌커 산 (Rümker)", "거대한 화산 돔 (Large volcanic dome)", "40.8N", "58.1W"],
+  [63, "비의 바다 조각 (Imbrium sculpture)", "보스코비치 등 근처 및 그 위를 덮고 있는 분지 분출물", "11.0N", "12.0E"],
+  [64, "데카르트 (Descartes)", "아폴로 16호 착륙지; 고지대 화산 활동 추정 지역", "11.7S", "15.7E"],
+  [65, "호르텐시우스 돔 (Hortensius domes)", "호르텐시우스 북쪽의 돔 군락", "7.6N", "27.9W"],
+  [66, "해들리 계곡 (Hadley Rille)", "아폴로 15호 착륙지 근처의 용암 통로", "25.0N", "3.0E"],
+  [67, "프라 마우로 구조 (Fra Mauro formation)", "비의 바다 분출물 위 아폴로 14호 착륙지", "3.6S", "17.5W"],
+  [68, "플램스티드 P (Flamsteed P)", "젊은 화산 크레이터 제안지 및 서베이어 1호 착륙지", "3.0S", "44.0W"],
+  [69, "코페르니쿠스 이차 크레이터", "피테아스 근처의 광조와 작은 크레이터들", "19.6N", "19.1W"],
+  [70, "훔볼트 분지 (Humboldtianum basin)", "다중 고리 충돌 분지", "57.0N", "80.0E"],
+  [71, "술피키우스 갈루스 어두운 맨틀", "크레이터 북서쪽의 화산재 분출물", "19.6N", "11.6E"],
+  [72, "아틀라스 어두운 후광 크레이터", "아틀라스 바닥의 폭발성 화산 구덩이들", "46.7N", "44.4E"],
+  [73, "스미스 분지 (Smythii basin)", "관측하기 어려운 분지 절벽과 바다", "2.0S", "87.0E"],
+  [74, "코페르니쿠스 H (Copernicus H)", "어두운 후광이 있는 충돌 크레이터", "6.9N", "18.3W"],
+  [75, "프톨레마이오스 B (Ptolemaeus B)", "프톨레마이오스 바닥의 접시 모양 함몰 지형", "8.0S", "0.8W"],
+  [76, "W. 본드 (W. Bond)", "비의 바다 분출물에 의해 파괴된 대형 크레이터", "65.3N", "3.7E"],
+  [77, "시르살리스 계곡 (Sirsalis Rille)", "폭풍의 대양 분지의 방사형 계곡들", "15.7S", "61.7W"],
+  [78, "람베르트 R (Lambert R)", "파묻힌 '유령' 크레이터 (A buried ghost crater)", "23.8N", "20.6W"],
+  [79, "폭염의 만 (Sinus Aestuum)", "동쪽의 어두운 맨틀 화산 퇴적물", "12.0N", "3.5W"],
+  [80, "동해 분지 (Orientale basin)", "가장 젊은 거대 충돌 분지", "19.0S", "95.0W"],
+  [81, "헤시오두스 A (Hesiodus A)", "동심원형 크레이터 (Concentric crater)", "30.1S", "17.0W"],
+  [82, "린네 (Linné)", "한때 사라진 것으로 여겨졌던 작은 크레이터", "27.7N", "11.8E"],
+  [83, "플라톤 작은 크레이터들 (Plato craterlets)", "탐지 한계에 있는 크레이터 구덩이들", "51.6N", "9.4W"],
+  [84, "피타투스 (Pitatus)", "동심원형 계곡이 있는 크레이터", "29.8S", "13.5W"],
+  [85, "랑그레누스 광조 (Langrenus rays)", "오래된 광조 시스템", "8.9S", "60.9E"],
+  [86, "프린츠 계곡군 (Prinz Rilles)", "프린츠 크레이터 근처의 계곡 시스템", "27.0N", "43.0W"],
+  [87, "훔볼트 (Humboldt)", "중앙 봉우리들과 어두운 점들이 있는 크레이터", "27.0S", "80.9E"],
+  [88, "피어리 (Peary)", "관측하기 어려운 극지방 크레이터", "88.6N", "33.0E"],
+  [89, "발렌타인 돔 (Valentine Dome)", "화산 돔 (Volcanic dome)", "30.5N", "10.1E"],
+  [90, "암스트롱, 올드린 & 콜린스", "아폴로 11호 착륙지 근처의 작은 크레이터들", "1.3N", "23.7E"],
+  [91, "데 가스파리스 계곡군 (De Gasparis Rilles)", "계곡이 많은 지역", "25.9S", "50.7W"],
+  [92, "굴덴 계곡 (Gylden Valley)", "비의 바다 방사형 조각의 일부", "5.1S", "0.7E"],
+  [93, "디오니시우스 광조 (Dionysius rays)", "특이하고 드문 어두운 광조", "2.8N", "17.3E"],
+  [94, "드리가이츠키 (Drygalski)", "남극 지역의 거대 크레이터", "79.3S", "84.9W"],
+  [95, "폭풍의 대양 분지 (Procellarum basin)", "달에서 가장 큰 분지?", "23.0N", "15.0W"],
+  [96, "라이프니츠 산맥 (Leibnitz Mountains)", "남극-에이트켄 분지의 가장자리", "85.0S", "30.0E"],
+  [97, "잉기라미 계곡 (Inghirami Valley)", "동해 분지 분출물 (Orientale basin ejecta)", "44.0S", "73.0W"],
+  [98, "비의 바다 용암류 (Imbrium lava flows)", "바다 용암류의 경계", "32.8N", "22.0W"],
+  [99, "이나 (Ina)", "D자 모양의 젊은 화산 칼데라", "18.6N", "5.3E"],
+  [100, "가장자리의 바다 소용돌이 (Mare Marginis swirls)", "자기장 관련 퇴적물 가능성", "18.5N", "88.0E"]
+];
+
+const BEST_DAYS_MAP = {
+  1: "14일", 2: "2일", 3: "14일", 4: "7일, 21~22일", 5: "9일, 21~22일",
+  6: "9일, 21~22일", 7: "5일, 18~20일", 8: "5일, 18~20일", 9: "9일, 21~22일", 10: "2일, 15~17일",
+  11: "11일, 26~28일", 12: "4일, 15~17일", 13: "10일, 23~25일", 14: "9일, 23~25일", 15: "8일, 21~22일",
+  16: "2일, 15~17일", 17: "11일, 26~28일", 18: "5일, 18~20일", 19: "7일, 21~22일", 20: "5일, 18~20일",
+  21: "5일, 18~20일", 22: "11일, 26~28일", 23: "21~22일", 24: "6일, 21~22일", 25: "4일, 15~17일",
+  26: "5일, 21~22일", 27: "7일, 21~22일", 28: "6일, 21~22일", 29: "6일, 18~20일", 30: "10일, 23~25일",
+  31: "4일, 15~17일", 32: "5일, 18~20일", 33: "5일, 18~20일", 34: "5일, 18~20일", 35: "6일, 21~22일",
+  36: "13일, 26~28일", 37: "12일, 26~28일", 38: "5일, 18~20일", 39: "11일, 26~28일", 40: "4일, 15~17일",
+  41: "6일, 18~20일", 42: "11일, 26~28일", 43: "12일, 26~28일", 44: "11일, 26~28일", 45: "6일, 18~20일",
+  46: "7일, 21~22일", 47: "8일, 21~22일", 48: "4일, 18~20일", 49: "10일, 23~25일", 50: "6일, 18~20일",
+  51: "8일, 21~22일", 52: "13일, 26~28일", 53: "5일, 18~20일", 54: "10일, 23~25일", 55: "5일, 18~20일",
+  56: "2일, 15~17일", 57: "11일, 26~28일", 58: "3일, 15~17일", 59: "10일, 23~25일", 60: "9일, 23~25일",
+  61: "8일, 21~22일", 62: "12일, 26~28일", 63: "6일, 18~20일", 64: "6일, 18~20일", 65: "9일, 23~25일",
+  66: "7일, 21~22일", 67: "9일, 21~22일", 68: "10일, 23~25일", 69: "9일, 21~22일", 70: "2일, 15~17일",
+  71: "6일, 18~20일", 72: "4일, 15~17일", 73: "2일, 15~17일", 74: "9일, 21~22일", 75: "7일, 21~22일",
+  76: "7일, 21~22일", 77: "12일, 26~28일", 78: "9일, 21~22일", 79: "8일, 21~22일", 80: "13일, 26~28일",
+  81: "9일, 21~22일", 82: "6일, 18~20일", 83: "8일, 21~22일", 84: "9일, 21~22일", 85: "2일, 15~17일",
+  86: "11일, 26~28일", 87: "2일, 15~17일", 88: "7일, 21~22일", 89: "6일, 18~20일", 90: "5일, 18~20일",
+  91: "11일, 26~28일", 92: "7일, 21~22일", 93: "6일, 18~20일", 94: "9일, 21~22일", 95: "14일",
+  96: "8일, 21~22일", 97: "13일, 26~28일", 98: "10일, 23~25일", 99: "8일, 21~22일", 100: "2일, 15~17일"
+};
+
+// 상위 주요 지형들에 대한 맞춤형 상세 설명 (The Cambridge Photographic Moon Atlas 및 천문학적 지식 반영)
+const DETAILED_DESCRIPTIONS = {
+  1: "우리가 밤하늘에서 보는 달 전체를 의미합니다. 지구의 유일한 자연 위성이며, 표면은 밝고 크레이터가 밀집한 오래된 고지대와, 비교적 어둡고 매끄러운 화산암 지대인 '바다(Maria)'로 나뉩니다. 맨눈으로도 명암의 대비를 통해 '토끼'나 '여인의 얼굴' 같은 모양을 연상할 수 있습니다.",
+  2: "지구조(Earthshine) 현상은 주로 초승달이나 그믐달 시기에 관측됩니다. 태양빛을 강하게 반사하는 지구의 표면(구름, 바다 등)에서 튕겨나간 빛이 달의 어두운 부분을 비추어, 태양빛을 직접 받지 않는 달의 나머지 윤곽이 옅게 보이는 아름다운 현상입니다. '달 품은 초승달(The old moon in the new moon's arms)'이라고도 불립니다.",
+  3: "달 표면을 볼 때 가장 먼저 눈에 띄는 특징입니다. 어둡고 둥근 형태를 띤 '바다' 지역은 과거 거대한 운석 충돌로 패인 분지에 점성이 낮은 현무암질 용암이 흘러들어 평탄하게 굳은 곳입니다. 반면 밝은 고지대는 달의 원시 지각인 사장암으로 이루어져 있으며 수많은 운석 구덩이로 덮여 있습니다.",
+  4: "아펜니누스 산맥(Montes Apenninus)은 비의 바다(Mare Imbrium) 남동쪽 경계를 따라 활처럼 휘어진 거대한 산맥입니다. 달에서 가장 장엄한 산맥 중 하나로 꼽히며 최고 높이가 약 5,000m를 넘습니다. 1971년 아폴로 15호가 이 산맥 부근의 해들리 계곡(Hadley Rille) 인근에 착륙했습니다. 명암 경계선이 지날 때 거대한 산맥의 그림자가 바다 위로 길게 드리우는 장관을 연출합니다.",
+  5: "코페르니쿠스(Copernicus) 크레이터는 '달의 군주'라 불릴 만큼 대표적이고 눈에 띄는 복합 충돌구입니다. 직경 약 93km로 중앙에 다중 봉우리가 솟아있고, 테두리는 웅장한 계단식 성벽 구조를 이룹니다. 특히 보름달 시기가 되면 코페르니쿠스에서 사방으로 뻗어 나간 거대한 광조(Ray)를 뚜렷하게 볼 수 있습니다.",
+  6: "티코(Tycho)는 달 남반구에 위치한 매우 눈에 띄는 크레이터(직경 85km)로, 달에서 가장 크고 선명한 광조(Ray) 시스템을 가지고 있습니다. 충돌 시 뿜어져 나온 물질들이 수천 킬로미터에 걸쳐 달 표면을 가로지르며, 생성된 지 약 1억 년 밖에 되지 않은 매우 젊은 지형입니다. 보름달일 때 남쪽에서 방사형으로 퍼지는 흰 줄기들의 중심점입니다.",
+  10: "위난의 바다(Mare Crisium)는 달의 동쪽 가장자리에 위치한 둥근 모양의 독립된 바다입니다. 짙고 어두운 현무암으로 채워져 있으며 주변이 험준한 산맥으로 둘러싸여 있습니다. 지구에서 볼 때는 달의 곡면 때문에 타원형으로 보이지만 실제로는 직경 약 550km의 거대한 원형 분지입니다.",
+  14: "무지개 만(Sinus Iridum)은 비의 바다 북서쪽에 위치한 반원형의 거대한 만입니다. 원래는 거대한 크레이터였으나, 한쪽 벽면이 용암에 녹아내리거나 묻히면서 아름다운 C자 형태의 지형이 되었습니다. 해가 뜰 때(월령 9일경) 만을 둘러싼 쥐라 산맥(Montes Jura)의 봉우리들이 어둠 속에서 먼저 햇빛을 받아 반짝이는 '황금 손잡이(Golden Handle)' 현상이 매우 유명합니다."
+};
+
+// NASA LRO 정사투영 달 지도 (여백 없음, 동일 규격)
+const moonImageLowRes = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Moon_nearside_LRO_5000_%282%29.png/320px-Moon_nearside_LRO_5000_%282%29.png";
+const moonImageHighRes = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Moon_nearside_LRO_5000_%282%29.png/1024px-Moon_nearside_LRO_5000_%282%29.png";
+
+const ALL_DATA = RAW_LUNAR_100.map(item => {
+  const [id, name, desc, latStr, longStr] = item;
+  let x = 50, y = 50;
+  
+  let type = "크레이터";
+  if (name.includes("바다") || name.includes("호수") || name.includes("만") || name.includes("평원")) type = "바다/평원";
+  else if (name.includes("산맥") || name.includes("절벽") || name.includes("고원") || name.includes("언덕") || name.includes("돔") || name.includes("산")) type = "산지/특수지형";
+  else if (name.includes("계곡") || name.includes("구조") || name.includes("단층") || name.includes("광조") || name.includes("점") || name.includes("소용돌이") || name.includes("경계")) type = "계곡/기타";
+  
+  if (id <= 3) type = "관측 현상/특징";
+
+  if (latStr && longStr) {
+    const latVal = parseFloat(latStr);
+    const latSign = latStr.includes('N') ? 1 : -1;
+    const lat = latVal * latSign;
+
+    const longVal = parseFloat(longStr);
+    const longSign = longStr.includes('E') ? 1 : -1;
+    const long = longVal * longSign;
+
+    const latRad = (lat * Math.PI) / 180;
+    const longRad = (long * Math.PI) / 180;
+
+    const RADIUS = 49.8;
+    y = 50 - RADIUS * Math.sin(latRad);
+    x = 50 + RADIUS * Math.cos(latRad) * Math.sin(longRad);
+
+  } else {
+    if (id === 1) { x = 50; y = 50; }
+    if (id === 2) { x = 20; y = 35; }
+    if (id === 3) { x = 65; y = 70; }
+  }
+
+  const bestDays = BEST_DAYS_MAP[id] || "정보 없음";
+  const displayName = name.split(' (')[0];
+
+  // 상세 설명 생성 (수동 설명이 있으면 사용, 없으면 자동 생성)
+  const autoDesc = `${displayName}은(는) 달의 대표적인 ${type} 지형 중 하나로, ${desc.split('(')[0].trim()} 특징을 지닙니다. 캠브리지 달 사진 아틀라스(The Cambridge Photographic Moon Atlas) 및 관측 데이터에 따르면 이 지역은 지형의 입체감이 극대화되는 월령 ${bestDays} 부근 명암 경계선에서 관측할 때 가장 뛰어난 장관을 보여줍니다.`;
+  const detailedText = DETAILED_DESCRIPTIONS[id] || autoDesc;
+
+  return { id, name, displayName, type, description: desc, x, y, bestDays, detailedText };
+});
+
+const App = () => {
+  const [observedIds, setObservedIds] = useState(new Set());
+  const [selectedId, setSelectedId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("All");
+  
+  const [lowResLoaded, setLowResLoaded] = useState(false);
+  const [highResLoaded, setHighResLoaded] = useState(false);
+
+  // Zoom & Pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const mapContainerRef = useRef(null);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+
+  const toggleObserved = (id, e) => {
+    e.stopPropagation();
+    const newSet = new Set(observedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setObservedIds(newSet);
+  };
+
+  const filteredItems = useMemo(() => {
+    return ALL_DATA.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = filterType === "All" || item.type === filterType;
+      return matchesSearch && matchesFilter;
+    });
+  }, [searchTerm, filterType]);
+
+  const selectedItem = useMemo(() => 
+    ALL_DATA.find(item => item.id === selectedId), [selectedId]
+  );
+
+  const types = ["All", ...new Set(ALL_DATA.map(item => item.type))];
+
+  // --- Zoom & Pan Handlers ---
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.5, 5));
+  const handleZoomOut = () => {
+    setZoom(prev => {
+      const newZoom = Math.max(prev - 0.5, 1);
+      if (newZoom === 1) setPan({ x: 0, y: 0 });
+      return newZoom;
+    });
+  };
+  const handleResetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  const handleMouseDown = (e) => {
+    if (zoom <= 1) return;
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || zoom <= 1) return;
+    setPan({
+      x: e.clientX - dragStartRef.current.x,
+      y: e.clientY - dragStartRef.current.y
+    });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseLeave = () => setIsDragging(false);
+
+  const handleWheel = (e) => {
+      e.preventDefault();
+      if(e.deltaY < 0) handleZoomIn();
+      else handleZoomOut();
+  }
+
+  useEffect(() => {
+      const container = mapContainerRef.current;
+      if(container) {
+          container.addEventListener('wheel', handleWheel, {passive: false});
+          return () => container.removeEventListener('wheel', handleWheel);
+      }
+  }, [zoom]);
+
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); border-radius: 10px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .moon-image-shadow { box-shadow: 0 0 80px rgba(255, 255, 255, 0.05); }
+        .marker-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      `}} />
+
+      <header className="max-w-4xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-300 flex items-center gap-2">
+            <Moon className="text-blue-400" /> Lunar 100 Assistant
+          </h1>
+          <p className="text-slate-400 mt-1">확대/축소가 가능한 정밀 달 관측 지도</p>
+        </div>
+        <div className="flex items-center gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+          <div className="text-center">
+            <div className="text-2xl font-mono text-blue-400">{observedIds.size} / 100</div>
+            <div className="text-xs text-slate-500 uppercase tracking-widest">Progress</div>
+          </div>
+          <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-500 transition-all duration-500" 
+              style={{ width: `${(observedIds.size / 100) * 100}%` }}
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto grid grid-cols-1 gap-8">
+        <section className="relative group">
+          <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                  <h2 className="font-semibold flex items-center gap-2">
+                    <Telescope size={18} className="text-blue-400" /> Lunar Map
+                  </h2>
+                  <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
+                      <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="축소"><ZoomOut size={16} /></button>
+                      <span className="text-xs font-mono w-10 text-center text-slate-400">{Math.round(zoom * 100)}%</span>
+                      <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="확대"><ZoomIn size={16} /></button>
+                      <div className="w-px h-4 bg-slate-700 mx-1"></div>
+                      <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="초기화"><Maximize size={16} /></button>
+                  </div>
+              </div>
+              {selectedItem && (
+                <span className="text-sm text-blue-400 animate-pulse font-medium hidden sm:block">
+                  L{selectedItem.id} {selectedItem.displayName}
+                </span>
+              )}
+            </div>
+            
+            <div 
+                ref={mapContainerRef}
+                className={`relative aspect-square max-w-[600px] mx-auto bg-black overflow-hidden ${zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-crosshair'}`}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+            >
+              <div 
+                className="absolute inset-0 w-full h-full transform origin-center transition-transform duration-200 ease-out"
+                style={{ 
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                    transitionProperty: isDragging ? 'none' : 'transform' 
+                }}
+              >
+                  <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${lowResLoaded || highResLoaded ? 'opacity-100' : 'opacity-0'}`}>
+                    <img 
+                      src={moonImageLowRes} alt="Moon Surface Low Res"
+                      className={`absolute w-full h-full object-contain rounded-full moon-image-shadow pointer-events-none transition-opacity duration-700 ${highResLoaded ? 'opacity-0' : 'opacity-100 blur-sm'}`}
+                      onLoad={() => setLowResLoaded(true)}
+                    />
+                    <img 
+                      src={moonImageHighRes} alt="Actual Moon Surface"
+                      className={`absolute w-full h-full object-contain rounded-full moon-image-shadow pointer-events-none transition-opacity duration-700 ${highResLoaded ? 'opacity-100' : 'opacity-0'}`}
+                      onLoad={() => setHighResLoaded(true)}
+                    />
+                    <div className="absolute inset-0 bg-blue-500/5 pointer-events-none rounded-full"></div>
+                  </div>
+
+                  {!(lowResLoaded || highResLoaded) && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
+                      <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                      <p className="text-slate-500 text-sm animate-pulse">지도 데이터 로딩 중...</p>
+                    </div>
+                  )}
+
+                  {(lowResLoaded || highResLoaded) && ALL_DATA.map((item) => {
+                    const interactionClasses = isDragging ? "pointer-events-none" : "cursor-pointer";
+                    const markerScale = 1 / zoom;
+
+                    return (
+                        <div
+                        key={item.id}
+                        onClick={(e) => {
+                            if(!isDragging) {
+                                e.stopPropagation();
+                                setSelectedId(item.id);
+                            }
+                        }}
+                        style={{ 
+                            left: `${item.x}%`, 
+                            top: `${item.y}%`,
+                            transform: `translate(-50%, -50%) scale(${markerScale})`
+                        }}
+                        className={`absolute w-4 h-4 rounded-full transition-all duration-300 z-20 flex items-center justify-center ${interactionClasses}
+                            ${selectedId === item.id ? 'z-30' : 'hover:z-30'}`}
+                        title={`L${item.id}: ${item.name}`}
+                        >
+                            <div className={`w-full h-full rounded-full border shadow-sm transition-transform ${
+                                selectedId === item.id
+                                ? 'bg-blue-400 border-white ring-4 ring-blue-400/40 scale-150'
+                                : observedIds.has(item.id)
+                                    ? 'bg-green-500 border-green-200 opacity-80 scale-100'
+                                    : 'bg-white/30 border-white/80 hover:bg-white hover:scale-125 scale-100'
+                            }`}></div>
+                            
+                            <div className={`absolute -top-7 ${selectedId === item.id ? 'bg-blue-600 border-blue-400 z-50' : 'bg-slate-800/80 border-slate-600'} border text-[10px] px-1.5 py-0.5 rounded text-white whitespace-nowrap backdrop-blur-sm transition-all flex items-center gap-1`}>
+                                <span className={`font-bold ${selectedId === item.id ? 'text-white' : 'text-blue-300'}`}>L{item.id}</span>
+                                <span className="marker-label font-medium">{item.displayName}</span>
+                            </div>
+                        </div>
+                    );
+                  })}
+              </div>
+
+              {selectedItem && (
+                <div className="absolute bottom-6 left-6 right-6 bg-slate-900/85 border border-blue-500/50 p-4 rounded-2xl backdrop-blur-xl shadow-2xl z-40 transition-all animate-in fade-in slide-in-from-bottom-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 pr-4">
+                        <h3 className="font-bold text-xl text-blue-300 flex items-center gap-2">
+                            <span className="text-xs bg-blue-500/20 px-2 py-0.5 rounded text-blue-400">L{selectedItem.id}</span>
+                            <span className="truncate">{selectedItem.displayName}</span>
+                        </h3>
+                        
+                        <div className="inline-flex items-center gap-1.5 mt-2.5 text-[11px] font-medium text-indigo-300 bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20">
+                            <Calendar size={12} />
+                            <span>관측 최적기: 월령 {selectedItem.bestDays}</span>
+                        </div>
+
+                        <p className="text-sm text-slate-300 mt-2.5 leading-relaxed">{selectedItem.description}</p>
+                        <button
+                            onClick={() => {
+                                const element = document.getElementById(`lunar-item-${selectedItem.id}`);
+                                if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    element.classList.add('ring-2', 'ring-blue-400', 'bg-blue-900/50');
+                                    setTimeout(() => {
+                                        element.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-900/50');
+                                    }, 1200);
+                                }
+                            }}
+                            className="mt-3 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-500/30 flex items-center gap-1 w-fit"
+                        >
+                            자세히 알아보기 ↓
+                        </button>
+                    </div>
+                    <button 
+                        onClick={(e) => toggleObserved(selectedItem.id, e)}
+                        className={`p-3 rounded-xl transition-colors shrink-0 ${
+                            observedIds.has(selectedItem.id) 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}
+                    >
+                        <CheckCircle2 size={24} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+              <input 
+                type="text" 
+                placeholder="지형 이름 또는 설명 검색..."
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+              <Filter size={16} className="text-slate-500 shrink-0" />
+              {types.map(type => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
+                    filterType === type 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  {type === "All" ? "전체" : type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            {filteredItems.length > 0 ? (
+              filteredItems.map((item) => (
+                <div 
+                  key={item.id}
+                  id={`lunar-item-${item.id}`}
+                  className={`group flex flex-col p-4 rounded-2xl border transition-all duration-300 ${
+                    selectedId === item.id 
+                      ? 'bg-blue-900/20 border-blue-500/50 shadow-lg' 
+                      : 'bg-slate-900/40 border-slate-800 hover:bg-slate-900 hover:border-slate-700 cursor-pointer'
+                  }`}
+                  onClick={() => {
+                    if (selectedId !== item.id) setSelectedId(item.id);
+                  }}
+                >
+                  <div className="flex items-start sm:items-center gap-4">
+                    {/* CSS background-position을 활용한 스마트 썸네일 생성 */}
+                    <div className={`shrink-0 w-14 h-14 relative rounded-full overflow-hidden border-2 transition-colors ${
+                        selectedId === item.id ? 'border-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.4)]' : 'border-slate-700 group-hover:border-slate-500'
+                    }`}>
+                      <div 
+                        className="w-full h-full opacity-90 brightness-110"
+                        style={{
+                          backgroundImage: `url(${moonImageHighRes})`,
+                          backgroundSize: '1500%', // 전체 지도 대비 15배 줌으로 크롭 효과
+                          backgroundPosition: `${item.x}% ${item.y}%`,
+                          backgroundRepeat: 'no-repeat'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                         <span className="font-mono text-sm font-bold text-white shadow-black drop-shadow-md">L{item.id}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 py-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="font-semibold text-slate-100 truncate">{item.displayName}</h4>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 bg-slate-800 uppercase tracking-tighter shrink-0">
+                          {item.type}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-indigo-500/30 text-indigo-300 bg-indigo-500/10 flex items-center gap-1 shrink-0">
+                          <Calendar size={10} /> 월령 {item.bestDays}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-400 line-clamp-1 mt-1.5">{item.description}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (selectedId === item.id) setSelectedId(null);
+                                else setSelectedId(item.id);
+                            }}
+                            className="p-2 rounded-xl text-slate-500 hover:text-blue-400 transition-colors hidden sm:block"
+                        >
+                            {selectedId === item.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        </button>
+                        <button 
+                            onClick={(e) => toggleObserved(item.id, e)}
+                            className={`p-2 rounded-xl transition-all ${
+                            observedIds.has(item.id) 
+                                ? 'text-green-400 bg-green-400/10 hover:bg-green-400/20' 
+                                : 'text-slate-600 hover:text-slate-400 bg-slate-800/50 hover:bg-slate-800'
+                            }`}
+                        >
+                            {observedIds.has(item.id) ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+                        </button>
+                    </div>
+                  </div>
+
+                  {/* 선택된 아이템의 상세 정보 아코디언 패널 */}
+                  {selectedId === item.id && (
+                    <div className="mt-4 pt-4 border-t border-slate-800/50 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex flex-col md:flex-row gap-5">
+                            {/* 상세 크롭 이미지 (스마트 썸네일 확장) */}
+                            <div className="w-full md:w-1/3 aspect-video md:aspect-square bg-slate-900 rounded-xl overflow-hidden border border-slate-800 relative">
+                                <div 
+                                    className="w-full h-full opacity-90 brightness-110"
+                                    style={{
+                                        backgroundImage: `url(${moonImageHighRes})`,
+                                        backgroundSize: '500%', // 상세 뷰에서는 주변을 더 보여주도록 배율 조정 (5배)
+                                        backgroundPosition: `${item.x}% ${item.y}%`,
+                                        backgroundRepeat: 'no-repeat'
+                                    }}
+                                />
+                                <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded text-[10px] text-slate-400 backdrop-blur-sm border border-slate-700 flex items-center gap-1">
+                                    <MapPin size={10} />
+                                    좌표: {item.x.toFixed(1)}%, {item.y.toFixed(1)}%
+                                </div>
+                            </div>
+
+                            {/* 상세 텍스트 설명 */}
+                            <div className="flex-1">
+                                <h5 className="text-sm font-semibold text-blue-300 mb-2 flex items-center gap-1.5">
+                                    <BookOpen size={14} /> 관측 가이드 및 특징
+                                </h5>
+                                <p className="text-sm text-slate-300 leading-relaxed text-justify break-keep">
+                                    {item.detailedText}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12 text-slate-500">
+                <Info className="mx-auto mb-2 opacity-20" size={48} />
+                <p>검색 결과가 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+      
+      <footer className="max-w-4xl mx-auto mt-12 pt-8 border-t border-slate-900 text-center text-slate-600 text-sm">
+          <p>© Lunar 100 Observation Assistant | Powered by NASA LRO Imagery & S&T Lunar 100 Data</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
