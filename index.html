@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lunar 100 관측 트래커 (데이터 & 지도 복구)</title>
+    <title>Lunar 100 관측 트래커 (PC/모바일 최적화)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,8 +24,6 @@
         #globe-container {
             cursor: grab;
             background-color: #000;
-            width: 100%;
-            height: 100%;
         }
         #globe-container:active {
             cursor: grabbing;
@@ -42,7 +40,7 @@
         .moon-icon-container {
             width: 42px;
             height: 42px;
-            background-image: url('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg');
+            background-image: url('https://unpkg.com/three-globe/example/img/moon-surface.jpg');
             background-size: cover;
             background-position: center;
             border-radius: 50%;
@@ -122,7 +120,7 @@
                 <div class="moon-shadow" id="moon-shadow-overlay"></div>
             </div>
             <div class="flex flex-col">
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none mb-1">Current Moon</span>
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none mb-1">Today's Moon</span>
                 <span id="current-moon-age" class="text-sm font-bold text-blue-400 leading-none tracking-tighter">계산 중...</span>
             </div>
         </div>
@@ -130,6 +128,7 @@
 
     <!-- 메인 레이아웃 -->
     <main class="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+        <!-- 3D 달 영역 -->
         <div id="globe-container" class="h-[45%] md:h-full md:w-[65%] relative z-0">
             <div id="globeViz" class="absolute inset-0"></div>
             <div class="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-none z-10">
@@ -154,11 +153,11 @@
                     </div>
                 </div>
                 <div id="lunar-list" class="p-3 space-y-2 pb-12 font-sans">
-                    <!-- JavaScript로 생성됨 -->
+                    <!-- 리스트 아이템이 렌더링될 위치 -->
                 </div>
             </div>
 
-            <!-- 상세 정보 화면 -->
+            <!-- 상세 정보 화면 (슬라이드 오버레이) -->
             <div id="detail-modal" class="absolute inset-0 bg-slate-900 z-20 hidden flex-col modal-hidden">
                 <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50 shrink-0">
                     <h3 id="modal-title" class="text-base md:text-lg font-bold text-blue-400 truncate pr-2 leading-tight"></h3>
@@ -174,14 +173,14 @@
                     
                     <div class="space-y-6 mt-4">
                         <section>
-                            <h4 class="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                            <h4 class="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2 opacity-80">
                                 <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> SIGNIFICANCE
                             </h4>
                             <p id="modal-desc" class="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap bg-slate-950/30 p-5 rounded-2xl border border-slate-800/50 shadow-inner font-medium"></p>
                         </section>
                         
                         <section id="modal-coords-section">
-                            <h4 class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                            <h4 class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2 opacity-80">
                                 <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> DATA SHEET
                             </h4>
                             <div id="modal-coords" class="text-xs text-slate-400 bg-slate-950/50 border border-slate-800 p-4 rounded-2xl font-mono leading-relaxed"></div>
@@ -195,9 +194,9 @@
     <script>
         let activeId = null;
 
-        // PDF 기반 1~100번 전체 실제 지형 데이터 수록
+        // PDF 기반 1~100번 전체 실제 지형 데이터
         const lunar100Data = [
-            { id: 1, name: "달", eng: "Moon", desc: "지구의 거대한 위성입니다. 전체적인 고지대와 바다의 대비를 관찰하세요.", lat: null, lng: null, day: 14, diam: 3476 },
+            { id: 1, name: "달", eng: "Moon", desc: "지구의 거대한 위성입니다. 전체적인 모습과 밝은 고지대, 어두운 바다의 대비를 관찰하세요.", lat: null, lng: null, day: 14, diam: 3476 },
             { id: 2, name: "지구조", eng: "Earthshine", desc: "지구에서 두 번 반사된 태양빛이 달의 어두운 부분을 희미하게 비추는 현상입니다.", lat: null, lng: null, day: 2, diam: 3476 },
             { id: 3, name: "바다/고지대 경계", eng: "Mare/highland dichotomy", desc: "성분이 뚜렷하게 다른 어두운 현무암 바다와 밝은 사장암 고지대의 극명한 대비입니다.", lat: null, lng: null, day: 14, diam: 3476 },
             { id: 4, name: "아펜니노 산맥", eng: "Apennines", desc: "비의 바다(Mare Imbrium) 분지 테두리를 형성하는 장엄한 산맥입니다. 최고 높이는 약 5km에 달합니다.", lat: "18.9N", lng: "3.7W", day: 7, diam: 400 },
@@ -209,23 +208,23 @@
             { id: 10, name: "위기의 바다", eng: "Mare Crisium", desc: "독립된 원형 분지에 담긴 바다입니다. 해 뜰 무렵 내부에 형성된 주름 능선들이 아름답게 관찰됩니다.", lat: "18.0N", lng: "59.0E", day: 2, diam: 540 },
             { id: 11, name: "아리스타르쿠스", eng: "Aristarchus", desc: "달에서 가장 반사율이 높은(밝은) 지형입니다. 내벽에 어두운 띠와 인근 슈뢰터 계곡을 함께 관찰하세요.", lat: "23.7N", lng: "47.4W", day: 11, diam: 40 },
             { id: 12, name: "프로클루스", eng: "Proclus", desc: "비스듬한 충돌로 인해 광조가 한쪽(팔루스 솜니 쪽)을 제외하고 부채꼴 모양으로 펼쳐진 독특한 크레이터입니다.", lat: "16.1N", lng: "46.8E", day: 4, diam: 28 },
-            { id: 13, name: "가상디", eng: "Gassendi", desc: "습기의 바다 가장자리에 위치한 지면 파쇄 크레이터(FFC)입니다. 용암 융기로 갈라진 틈을 확인하세요.", lat: "17.6S", lng: "40.1W", day: 10, diam: 101 },
+            { id: 13, name: "가상디", eng: "Gassendi", desc: "습기의 바다 가장자리에 위치한 지면 파쇄 크레이터(FFC)입니다. 용암 융기로 인해 바닥이 갈라진 틈을 확인하세요.", lat: "17.6S", lng: "40.1W", day: 10, diam: 101 },
             { id: 14, name: "무지개 만", eng: "Sinus Iridum", desc: "거대한 크레이터가 절반 정도 용암에 잠겨 형성된 아름다운 반원형 만입니다. 라플라스 곶이 유명합니다.", lat: "45.0N", lng: "32.0W", day: 9, diam: 260 },
-            { id: 15, name: "직선 벼랑", eng: "Straight Wall", desc: "길이 110km의 수직 단층입니다. 명암이 뚜렷할 때 매우 입체적으로 보이는 달의 명소입니다.", lat: "21.8S", lng: "7.8W", day: 8, diam: 130 },
+            { id: 15, name: "직선 벼랑", eng: "Straight Wall", desc: "길이 110km의 수직 단층입니다. 해가 뜰 때와 질 때 명암을 통해 입체적으로 보입니다.", lat: "21.8S", lng: "7.8W", day: 8, diam: 130 },
             { id: 16, name: "페타비우스", eng: "Petavius", desc: "바닥에 중앙 봉우리에서 뻗은 거대한 균열 계곡(Rimae Petavius)이 특징인 매우 역동적인 대형 크레이터입니다.", lat: "25.1S", lng: "60.4E", day: 2, diam: 177 },
             { id: 17, name: "슈뢰터 계곡", eng: "Schröter's Valley", desc: "달에서 가장 크고 긴 사행성(구불구불한) 용암 계곡입니다. 과거 달의 강력했던 화산 활동의 증거입니다.", lat: "26.2N", lng: "50.8W", day: 11, diam: 168 },
             { id: 18, name: "맑음의 바다 어두운 테두리", eng: "Mare Serenitatis dark edges", desc: "티타늄 함량이 높아 푸르고 어두운 빛을 띠는 고대의 용암 지대입니다.", lat: "17.8N", lng: "23.0E", day: 5, diam: 300 },
-            { id: 19, name: "알프스 계곡", eng: "Alpine Valley", desc: "알프스 산맥을 가로지르는 166km 길이의 거대 지구대(Graben)입니다. 중앙 계곡을 찾아보세요.", lat: "49.0N", lng: "3.0E", day: 7, diam: 165 },
+            { id: 19, name: "알프스 계곡", eng: "Alpine Valley", desc: "알프스 산맥을 직선으로 가로지르는 166km 길이의 거대 지구대(Graben)입니다.", lat: "49.0N", lng: "3.0E", day: 7, diam: 165 },
             { id: 20, name: "포시도니우스", eng: "Posidonius", desc: "바닥이 용암에 의해 융기되어 복잡한 능선과 계곡이 어우러진 대표적인 지면 파쇄 크레이터입니다.", lat: "31.8N", lng: "29.9E", day: 5, diam: 95 },
-            { id: 21, name: "프라카스토리우스", eng: "Fracastorius", desc: "감로주의 바다 용암에 의해 내려앉고 한쪽 벽이 무너진 오래된 크레이터입니다.", lat: "21.5S", lng: "33.2E", day: 5, diam: 124 },
+            { id: 21, name: "프라카스토리우스", eng: "Fracastorius", desc: "바닥이 용암에 의해 내려앉고 한쪽 벽이 무너진 오래된 크레이터입니다.", lat: "21.5S", lng: "33.2E", day: 5, diam: 124 },
             { id: 22, name: "아리스타르쿠스 고원", eng: "Aristarchus Plateau", desc: "화쇄암 물질로 덮인 미스터리한 사각형 모양의 융기 지역입니다.", lat: "26.0N", lng: "51.0W", day: 11, diam: 200 },
             { id: 23, name: "피코 산", eng: "Pico", desc: "비의 바다 한가운데 고립되어 솟아 있는 거대 산 봉우리입니다. 높이 약 2.4km.", lat: "45.7N", lng: "8.9W", day: 7, diam: 25 },
             { id: 24, name: "히기누스 계곡", eng: "Hyginus Rille", desc: "화산 폭발이나 붕괴로 인해 형성된 구덩이들이 사슬처럼 이어진 독특한 화산성 계곡 지형입니다.", lat: "7.4N", lng: "7.8E", day: 6, diam: 220 },
             { id: 25, name: "메시에 & 메시에 A", eng: "Messier & Messier A", desc: "비스듬한 충돌로 생성된 혜성 꼬리 같은 광조를 가진 특이한 크레이터 쌍입니다.", lat: "1.9S", lng: "47.6E", day: 4, diam: 15 },
             { id: 26, name: "추위의 바다", eng: "Mare Frigoris", desc: "달 북극 근처의 가늘고 긴 바다입니다. 형성 원인에 대한 다양한 지질학적 가설이 존재합니다.", lat: "56.0N", lng: "1.4E", day: 5, diam: 1590 },
             { id: 27, name: "아르키메데스", eng: "Archimedes", desc: "용암으로 가득 차서 중앙 봉우리가 보이지 않는 평평한 바닥의 큰 크레이터입니다.", lat: "29.7N", lng: "4.0W", day: 7, diam: 83 },
-            { id: 28, name: "히파르쿠스", eng: "Hipparchus", desc: "인류 역사상 최초로 단일 크레이터 스케치 대상이 되었던 매우 오래된 지형입니다.", lat: "5.5S", lng: "4.8E", day: 6, diam: 150 },
-            { id: 29, name: "아리아데우스 계곡", eng: "Aridaeus Rille", desc: "지각 단층 작용으로 형성된 아주 곧고 뚜렷한 지구대 지형입니다.", lat: "6.4N", lng: "14.0E", day: 6, diam: 250 },
+            { id: 28, name: "히파르쿠스", eng: "Hipparchus", desc: "인류 역사상 최초로 단일 크레이터 스케치 대상이 되었던 매우 오래되고 마모된 대형 크레이터입니다.", lat: "5.5S", lng: "4.8E", day: 6, diam: 150 },
+            { id: 29, name: "아리아데우스 계곡", eng: "Aridaeus Rille", desc: "지각 단층 작용으로 형성된 아주 곧고 뚜렷한 지구대 지형입니다. 망원경으로 찾기 쉽습니다.", lat: "6.4N", lng: "14.0E", day: 6, diam: 250 },
             { id: 30, name: "실러", eng: "Schiller", desc: "비스듬한 충돌로 인해 길쭉한 신발창 모양을 가진 독특한 충돌 지형입니다.", lat: "51.9S", lng: "39.0W", day: 10, diam: 179 },
             { id: 31, name: "타룬티우스", eng: "Taruntius", desc: "바닥이 동심원 모양으로 갈라진 젊은 지면 파쇄 크레이터입니다.", lat: "5.6N", lng: "46.5E", day: 4, diam: 56 },
             { id: 32, name: "아라고 돔", eng: "Arago Alpha & Beta", desc: "고요의 바다에 솟아 있는 대표적인 화산 돔 지형입니다.", lat: "6.2N", lng: "21.4E", day: 5, diam: 25 },
@@ -310,45 +309,64 @@
             .filter(d => d.lat !== null)
             .map(d => ({ ...d, latNum: parseCoord(d.lat), lngNum: parseCoord(d.lng) }));
 
-        const STORAGE_KEY = 'lunar100_final_standard_v4';
+        const STORAGE_KEY = 'lunar100_final_standard_v5';
         let progress = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-        // Globe 초기화
-        const globeContainer = document.getElementById('globe-container');
-        const moonGlobe = Globe()
-            (document.getElementById('globeViz'))
-            .width(globeContainer.clientWidth)
-            .height(globeContainer.clientHeight)
-            // 가장 안정적인 저해상도 표준 텍스처 (Three.js 공식 예제 에셋)
-            .globeImageUrl('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg')
-            .bumpImageUrl('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg')
-            .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-            .showAtmosphere(false)
-            .labelsData(globeData)
-            .labelLat('latNum')
-            .labelLng('lngNum')
-            .labelAltitude(0.005)
-            .labelText(d => d.id === activeId ? '' : `L${d.id}`)
-            .labelSize(d => d.id === activeId ? 0 : 2.2)
-            .labelDotRadius(d => d.id === activeId ? 0 : 1.1)
-            .labelColor(d => progress[d.id] ? '#4ade80' : '#fb923c') 
-            .labelResolution(3)
-            .onLabelClick(d => openModal(d.id))
-            .htmlElementsData([])
-            .htmlLat('latNum')
-            .htmlLng('lngNum')
-            .htmlElement(d => {
-                const el = document.createElement('div');
-                el.className = 'active-highlight-container';
-                // 지형 지름 비례 강조 원 크기 설정 (km -> px 변환)
-                const ringSize = Math.min(320, Math.max(55, d.diam * 0.65));
-                const labelPos = (ringSize / 2) + 15;
-                el.innerHTML = `
-                    <div class="active-ring" style="width:${ringSize}px; height:${ringSize}px;"></div>
-                    <div class="active-name-label" style="left:${labelPos}px;">${d.name}</div>
-                `;
-                return el;
+        let moonGlobe; // 전역 스코프로 맵 객체 관리
+
+        // 안전한 초기화: DOMContentLoaded 사용
+        document.addEventListener('DOMContentLoaded', () => {
+            const globeContainer = document.getElementById('globe-container');
+            if (!globeContainer) return;
+
+            moonGlobe = Globe()(document.getElementById('globeViz'))
+                .width(globeContainer.clientWidth)
+                .height(globeContainer.clientHeight)
+                // 가장 안정적인 저해상도 표준 텍스처 사용
+                .globeImageUrl('https://unpkg.com/three-globe/example/img/moon-surface.jpg')
+                .bumpImageUrl('https://unpkg.com/three-globe/example/img/moon-surface.jpg')
+                .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+                .showAtmosphere(false)
+                .labelsData(globeData)
+                .labelLat('latNum')
+                .labelLng('lngNum')
+                .labelAltitude(0.005)
+                .labelText(d => d.id === activeId ? '' : `L${d.id}`)
+                .labelSize(d => d.id === activeId ? 0 : 2.3)
+                .labelDotRadius(d => d.id === activeId ? 0 : 1.1)
+                .labelColor(d => progress[d.id] ? '#4ade80' : '#fb923c') 
+                .labelResolution(3)
+                .onLabelClick(d => openModal(d.id))
+                .htmlElementsData([])
+                .htmlLat('latNum')
+                .htmlLng('lngNum')
+                .htmlElement(d => {
+                    const el = document.createElement('div');
+                    el.className = 'active-highlight-container';
+                    // 지형 크기 비례 원형 강조 (최소 55px, 최대 320px)
+                    const ringSize = Math.min(320, Math.max(55, d.diam * 0.65));
+                    const labelPos = (ringSize / 2) + 15;
+                    el.innerHTML = `
+                        <div class="active-ring" style="width:${ringSize}px; height:${ringSize}px;"></div>
+                        <div class="active-name-label" style="left:${labelPos}px;">${d.name}</div>
+                    `;
+                    return el;
+                });
+
+            // PC 환경에서 화면 크기 변경 시에도 레이아웃이 깨지지 않도록 보장
+            const resizeObserver = new ResizeObserver(() => {
+                if(globeContainer && moonGlobe) {
+                    moonGlobe.width(globeContainer.clientWidth).height(globeContainer.clientHeight);
+                }
             });
+            resizeObserver.observe(globeContainer);
+
+            updateMoonIcon(calculateMoonAge(new Date()));
+            
+            // 지도 초기화 부드럽게 연출
+            setTimeout(() => resetGlobeView(), 500);
+            renderList();
+        });
 
         function calculateMoonAge(date) {
             let year = date.getFullYear(), month = date.getMonth() + 1, day = date.getDate();
@@ -360,75 +378,90 @@
 
         function updateMoonIcon(age) {
             const shadow = document.getElementById('moon-shadow-overlay');
+            if (!shadow) return;
+            
             if (age <= 14.76) {
                 const w = (1 - (age / 14.76)) * 100;
-                shadow.style.left = '0'; shadow.style.right = 'auto'; shadow.style.width = `${w}%`;
+                shadow.style.setProperty('left', '0');
+                shadow.style.setProperty('right', 'auto');
+                shadow.style.setProperty('width', `${w}%`);
             } else {
                 const w = ((age - 14.76) / 14.76) * 100;
-                shadow.style.left = 'auto'; shadow.style.right = '0'; shadow.style.width = `${w}%`;
+                shadow.style.setProperty('left', 'auto');
+                shadow.style.setProperty('right', '0');
+                shadow.style.setProperty('width', `${w}%`);
             }
-            document.getElementById('current-moon-age').innerText = `월령 ${age.toFixed(1)}일`;
+            
+            const ageText = document.getElementById('current-moon-age');
+            if(ageText) ageText.innerText = `월령 ${age.toFixed(1)}일`;
         }
 
-        window.onload = () => {
-            updateMoonIcon(calculateMoonAge(new Date()));
-            setTimeout(() => resetGlobeView(), 500);
-            renderList();
-        };
-
-        window.addEventListener('resize', () => {
-            moonGlobe.width(globeContainer.clientWidth).height(globeContainer.clientHeight);
-        });
-
         function resetGlobeView() {
-            moonGlobe.pointOfView({ lat: 0, lng: 0, altitude: 2.3 }, 1500);
+            if(moonGlobe) moonGlobe.pointOfView({ lat: 0, lng: 0, altitude: 2.3 }, 1500);
         }
 
         window.openModal = function(id) {
             const item = lunar100Data.find(d => d.id === id);
             if (!item) return;
             activeId = id;
-            if (item.lat) {
+            
+            if (item.lat && moonGlobe) {
                 const mapItem = globeData.find(d => d.id === id);
                 moonGlobe.htmlElementsData([mapItem]); 
                 moonGlobe.labelsData([...globeData]);  
                 const alt = Math.max(0.12, Math.min(0.7, item.diam / 1000));
                 moonGlobe.pointOfView({ lat: mapItem.latNum, lng: mapItem.lngNum, altitude: alt }, 1200);
             }
+            
             const modal = document.getElementById('detail-modal');
-            document.getElementById('modal-title').innerHTML = `${item.name} <span class="text-xs text-slate-500 font-normal ml-1">(${item.eng})</span>`;
-            document.getElementById('modal-desc').innerText = item.desc;
-            document.getElementById('modal-best-day-value').innerText = `월령 ${item.day}일 경`;
+            const titleEl = document.getElementById('modal-title');
+            const descEl = document.getElementById('modal-desc');
+            const bestDayEl = document.getElementById('modal-best-day-value');
+            const coordsSection = document.getElementById('modal-coords-section');
             const coordsDiv = document.getElementById('modal-coords');
-            if (item.lat) {
+
+            if(titleEl) titleEl.innerHTML = `${item.name} <span class="text-xs text-slate-500 font-normal ml-1">(${item.eng})</span>`;
+            if(descEl) descEl.innerText = item.desc;
+            if(bestDayEl) bestDayEl.innerText = `월령 ${item.day}일 경`;
+            
+            if (item.lat && coordsDiv && coordsSection) {
                 coordsDiv.innerHTML = `📍 위치: 위도 ${item.lat}, 경도 ${item.lng}<br>📏 지름: 약 ${item.diam}km`;
-                document.getElementById('modal-coords-section').style.display = 'block';
-            } else {
-                document.getElementById('modal-coords-section').style.display = 'none';
+                coordsSection.style.setProperty('display', 'block');
+            } else if (coordsSection) {
+                coordsSection.style.setProperty('display', 'none');
             }
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('modal-hidden');
-                modal.classList.add('modal-visible');
-            }, 10);
+            
+            if(modal) {
+                modal.classList.remove('hidden');
+                // 약간의 딜레이를 주어 애니메이션 적용
+                setTimeout(() => {
+                    modal.classList.remove('modal-hidden');
+                    modal.classList.add('modal-visible');
+                }, 10);
+            }
         };
 
         window.closeModal = function() {
             activeId = null;
-            moonGlobe.htmlElementsData([]);
-            moonGlobe.labelsData([...globeData]);
+            if (moonGlobe) {
+                moonGlobe.htmlElementsData([]);
+                moonGlobe.labelsData([...globeData]);
+            }
             resetGlobeView();
+            
             const modal = document.getElementById('detail-modal');
-            modal.classList.remove('modal-visible');
-            modal.classList.add('modal-hidden');
-            setTimeout(() => modal.classList.add('hidden'), 400);
+            if (modal) {
+                modal.classList.remove('modal-visible');
+                modal.classList.add('modal-hidden');
+                setTimeout(() => modal.classList.add('hidden'), 400);
+            }
         };
 
         window.toggleProgress = function(event, id) {
             event.stopPropagation(); 
             progress[id] = !progress[id];
             localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-            moonGlobe.labelsData([...globeData]); 
+            if (moonGlobe) moonGlobe.labelsData([...globeData]); 
             renderList();
         };
 
@@ -437,7 +470,7 @@
             const progressText = document.getElementById('progress-text');
             const progressBar = document.getElementById('progress-bar');
             
-            if (!listContainer || !progressText) return;
+            if (!listContainer) return;
 
             let completedCount = 0;
             const listHTML = lunar100Data.map(item => {
@@ -468,11 +501,15 @@
                     </div>
                 `;
             }).join('');
-            listContainer.innerHTML = listHTML;
-            progressText.innerText = `${completedCount} / 100`;
             
+            listContainer.innerHTML = listHTML;
+            
+            if (progressText) {
+                progressText.innerText = `${completedCount} / 100`;
+            }
             if (progressBar) {
-                progressBar.style.width = `${completedCount}%`;
+                // 안전한 속성 제어로 에러 원천 차단
+                progressBar.style.setProperty('width', `${completedCount}%`);
             }
         }
     </script>
