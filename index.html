@@ -915,7 +915,8 @@
                 btns.forEach(b => b.classList.remove('active')); btn.classList.add('active');
                 currentType = btn.getAttribute('data-type'); searchQuery = '';
                 document.getElementById('search-input').value = '';
-                if (currentType !== 'luna100') { currentSort = 'type'; document.getElementById('sort-select').value = 'type'; }
+                // 탭 변경 시 정렬 기준을 항상 '분류순'으로 통일하여 혼동 방지
+                currentSort = 'type'; document.getElementById('sort-select').value = 'type';
                 renderList();
                 update2DDeclutter(); // 카테고리 변경 시 마커 필터링 업데이트
                 if (map3D) update3DDeclutter();
@@ -937,13 +938,20 @@
             let filtered = moonFeatures.filter(f => (currentType === 'luna100' ? f.lunaId : (currentType === 'all' || f.types.includes(currentType))));
             if (searchQuery) filtered = filtered.filter(f => f.name.toLowerCase().includes(searchQuery));
 
-            if(currentType === 'luna100') filtered.sort((a, b) => (parseInt(a.lunaId.replace('L', '')) || 0) - (parseInt(b.lunaId.replace('L', '')) || 0));
-            else if (currentSort === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
-            else filtered.sort((a, b) => {
-                const typeA = a.id.replace(/[0-9]/g, ''), typeB = b.id.replace(/[0-9]/g, '');
-                if(typeA !== typeB) return typeA.localeCompare(typeB);
-                return (parseInt(a.id.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.id.replace(/[^0-9]/g, '')) || 0);
-            });
+            // 정렬 기준(이름순/분류순)에 맞게 확실하게 분기하여 적용
+            if (currentSort === 'name') {
+                filtered.sort((a, b) => a.name.localeCompare(b.name));
+            } else {
+                if (currentType === 'luna100') {
+                    filtered.sort((a, b) => (parseInt(a.lunaId.replace('L', '')) || 0) - (parseInt(b.lunaId.replace('L', '')) || 0));
+                } else {
+                    filtered.sort((a, b) => {
+                        const typeA = a.id.replace(/[0-9]/g, ''), typeB = b.id.replace(/[0-9]/g, '');
+                        if(typeA !== typeB) return typeA.localeCompare(typeB);
+                        return (parseInt(a.id.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.id.replace(/[^0-9]/g, '')) || 0);
+                    });
+                }
+            }
 
             if (filtered.length === 0) { listContainer.innerHTML = '<div style="padding: 20px; color: #94a3b8; text-align: center;">결과 없음</div>'; return; }
             filtered.forEach(feature => {
